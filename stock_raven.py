@@ -50,8 +50,8 @@ class STOCK_RAVEN:
                             del stocks[stock[0]]
         return stocks
 
-    def qualified_stock(self):
-        stocks = self._collect_stock()
+    def qualified_stock(self, twenty_day_info):
+        stocks = twenty_day_info
         qualified = []
         for k, v in stocks.items():
             if len(v["price"]) == 20:
@@ -170,9 +170,8 @@ class INS_RAVEN:
         return "DONE"
 
 class EXCEL_RAVEN:
-    def filter_1(self):
-        stock_raven = STOCK_RAVEN()
-        stocks = stock_raven._collect_stock()
+    def filter_1(self, twenty_day_info):
+        stocks = twenty_day_info
         qualified = []
         for k, v in stocks.items():
             if len(v["price"]) == 20:
@@ -235,9 +234,9 @@ class EXCEL_RAVEN:
                 stocks_info[tr.select_one("td.t3t1").text.strip().replace(" ", "")] = stock_info
         return stocks_info
 
-    def excel_maker(self):
+    def excel_maker(self, twenty_day_info):
         df = pd.DataFrame() 
-        f1_qualified = self.filter_1()
+        f1_qualified = self.filter_1(twenty_day_info)
         f2_qualified = self.filter_2(f1_qualified)
         f3_qualified = self.filter_3(f2_qualified)
         df["filter_1"] = pd.Series(f1_qualified)
@@ -247,29 +246,36 @@ class EXCEL_RAVEN:
         return "done"
 
 if __name__ == "__main__":
-    raven = EXCEL_RAVEN()
-    raven.excel_maker()
-    # while True:
-    #     print("想查詢 1: 型態過濾, 2: 籌碼過濾")
-    #     system = input()
-    #     if system == "1":
-    #         raven = STOCK_RAVEN()
-    #         print(raven.qualified_stock())
-    #     elif system == "2":
-    #         raven = INS_RAVEN()
-    #         print("1: 查詢近五交易日買賣超資訊, 2:查詢近五交易日買賣超 TOP 10 ")
-    #         choose = input()
-    #         if choose == "1":
-    #             print("開始查詢近五日買賣超資訊")
-    #             raven.major_ins_output()
-    #             print("請按任意鍵結束")
-    #             input()
-    #         elif choose == "2":
-    #             print("開始查詢近五日買賣超 TOP 10")
-    #             raven.major_rank_output()
-    #             print("請按任意鍵結束")
-    #             input()
-    #         else:
-    #             print("尚無此功能")
-    #     else:
-    #         print("尚無此功能")
+    twenty_day_info = {}
+    while True:
+        print("想查詢 1: 型態過濾, 2: 籌碼過濾, 3: excel 製作")
+        system = input()
+        if system == "1":
+            raven = STOCK_RAVEN()
+            if not twenty_day_info:
+                twenty_day_info = raven._collect_stock()
+            print(raven.qualified_stock(twenty_day_info))
+        elif system == "2":
+            raven = INS_RAVEN()
+            print("1: 查詢近五交易日買賣超資訊, 2:查詢近五交易日買賣超 TOP 10 ")
+            choose = input()
+            if choose == "1":
+                print("開始查詢近五日買賣超資訊")
+                raven.major_ins_output()
+                print("請按任意鍵結束")
+                input()
+            elif choose == "2":
+                print("開始查詢近五日買賣超 TOP 10")
+                raven.major_rank_output()
+                print("請按任意鍵結束")
+                input()
+            else:
+                print("尚無此功能")
+        elif system == "3":
+            if not twenty_day_info:
+                raven = STOCK_RAVEN()
+                twenty_day_info = raven._collect_stock()
+            raven = EXCEL_RAVEN()
+            print(raven.excel_maker(twenty_day_info))
+        else:
+            print("尚無此功能")
