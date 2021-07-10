@@ -1,7 +1,7 @@
 import time
 import requests
 from datetime import datetime, timedelta
-
+from bs4 import BeautifulSoup
 
 class STOCK_RAVEN:
     def _collect_stock(self):
@@ -168,29 +168,99 @@ class INS_RAVEN:
                 print(f"{stock_info[0]} {stock_info[1].strip()} : {stock_info[-1]}")
         return "DONE"
 
+class EXCEL_RAVEN:
+    def filter_1(self):
+        stock_raven = STOCK_RAVEN()
+        stocks = stock_raven._collect_stock()
+        qualified = []
+        for k, v in stocks.items():
+            if len(v["price"]) == 20:
+                if (
+                    (sum(v["price"][:5]) / 5) < (sum(v["price"][:10]) / 10)
+                    and v["price"][0] > (sum(v["price"][:20]) / 20)
+                    and (sum(v["volume"][:5]) / 5) > 1000
+                    and v["price"][0] > (sum(v["price"][:5]) / 5)
+                    and v["volume"][0] > v["volume"][1]
+                ):
+                    qualified.append((k, v["name"]))
+        return qualified
+    
+    def filter_2(self):
+        headers = {"user-agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Mobile Safari/537.36"}
+        filter2_qualified = []
+        qualified_stocks = self.filter_1()
+        for code, name in qualified_stocks:
+            time.sleep(2)
+            text = requests.get(f'https://tw.stock.yahoo.com/d/s/major_{code}.html', headers=headers).text
+            soup = BeautifulSoup(text, "lxml")
+            try:
+                volume = soup.select("div.Fz\(24px\)")[0]
+                ratio = soup.select("div.Fz\(24px\)")[1]
+                if float(volume.string.replace(",", "")) > 0:
+                    if float(ratio.string.replace("%", "")) >= 30:
+                        filter2_qualified.append((code, name, ratio))
+            except:
+                pass
+        return filter2_qualified
+
+    def filter_3(self):
+        filter2_qualified = self.filter_2()
+        top_50_stock = self._get_top50_stock()
+        filter3_qualified = []
+        for code, name, ratio in filter2_qualified:
+            if f"{code}{name}" in top_50_stock:
+                filter3_qualified.append((code, 
+                name, 
+                ratio, 
+                top_50_stock[f"{code}{name}"]["price"], 
+                top_50_stock[f"{code}{name}"]["buy"],
+                top_50_stock[f"{code}{name}"]["sell"],
+                top_50_stock[f"{code}{name}"]["gap"],
+                ))
+        return filter3_qualified
+
+    def _get_top50_stock(self):
+        text = requests.get("https://fubon-ebrokerdj.fbs.com.tw/z/zg/zg_F_0_2.djhtm").text
+        soup = BeautifulSoup(text, "lxml")
+        all_tr = soup.select("tr")[5:]
+        stocks_info = {}
+        column = ["price", "buy", "sell", "gap"]
+        for tr in all_tr:
+            if len(tr)>1:
+                stock_info = {}
+                info = tr.select("td.t3n1")
+                for idx in range(len(column)):
+                    stock_info[column[idx]] = info[idx].text.strip()
+                stocks_info[tr.select_one("td.t3t1").text.strip().replace(" ", "")] = stock_info
+        return stocks_info
+
+
+
 
 if __name__ == "__main__":
-    while True:
-        print("想查詢 1: 型態過濾, 2: 籌碼過濾")
-        system = input()
-        if system == "1":
-            raven = STOCK_RAVEN()
-            print(raven.qualified_stock())
-        elif system == "2":
-            raven = INS_RAVEN()
-            print("1: 查詢近五交易日買賣超資訊, 2:查詢近五交易日買賣超 TOP 10 ")
-            choose = input()
-            if choose == "1":
-                print("開始查詢近五日買賣超資訊")
-                raven.major_ins_output()
-                print("請按任意鍵結束")
-                input()
-            elif choose == "2":
-                print("開始查詢近五日買賣超 TOP 10")
-                raven.major_rank_output()
-                print("請按任意鍵結束")
-                input()
-            else:
-                print("尚無此功能")
-        else:
-            print("尚無此功能")
+    raven = EXCEL_RAVEN()
+    print(raven.filter_3())
+    # while True:
+    #     print("想查詢 1: 型態過濾, 2: 籌碼過濾")
+    #     system = input()
+    #     if system == "1":
+    #         raven = STOCK_RAVEN()
+    #         print(raven.qualified_stock())
+    #     elif system == "2":
+    #         raven = INS_RAVEN()
+    #         print("1: 查詢近五交易日買賣超資訊, 2:查詢近五交易日買賣超 TOP 10 ")
+    #         choose = input()
+    #         if choose == "1":
+    #             print("開始查詢近五日買賣超資訊")
+    #             raven.major_ins_output()
+    #             print("請按任意鍵結束")
+    #             input()
+    #         elif choose == "2":
+    #             print("開始查詢近五日買賣超 TOP 10")
+    #             raven.major_rank_output()
+    #             print("請按任意鍵結束")
+    #             input()
+    #         else:
+    #             print("尚無此功能")
+    #     else:
+    #         print("尚無此功能")
