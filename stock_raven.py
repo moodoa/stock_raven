@@ -1,5 +1,6 @@
 import time
 import requests
+import pandas as pd
 from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
 
@@ -185,10 +186,10 @@ class EXCEL_RAVEN:
                     qualified.append((k, v["name"]))
         return qualified
     
-    def filter_2(self):
+    def filter_2(self, f1_qualified):
         headers = {"user-agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Mobile Safari/537.36"}
         filter2_qualified = []
-        qualified_stocks = self.filter_1()
+        qualified_stocks = f1_qualified
         for code, name in qualified_stocks:
             time.sleep(2)
             text = requests.get(f'https://tw.stock.yahoo.com/d/s/major_{code}.html', headers=headers).text
@@ -203,8 +204,8 @@ class EXCEL_RAVEN:
                 pass
         return filter2_qualified
 
-    def filter_3(self):
-        filter2_qualified = self.filter_2()
+    def filter_3(self, f2_qualified):
+        filter2_qualified = f2_qualified
         top_50_stock = self._get_top50_stock()
         filter3_qualified = []
         for code, name, ratio in filter2_qualified:
@@ -234,12 +235,20 @@ class EXCEL_RAVEN:
                 stocks_info[tr.select_one("td.t3t1").text.strip().replace(" ", "")] = stock_info
         return stocks_info
 
-
-
+    def excel_maker(self):
+        df = pd.DataFrame() 
+        f1_qualified = self.filter_1()
+        f2_qualified = self.filter_2(f1_qualified)
+        f3_qualified = self.filter_3(f2_qualified)
+        df["filter_1"] = pd.Series(f1_qualified)
+        df["filter_2"] = pd.Series(f2_qualified)
+        df["filter_3"] = pd.Series(f3_qualified)
+        df.to_csv(f'{datetime.now().strftime("%Y%m%d")}stock_result.csv')
+        return "done"
 
 if __name__ == "__main__":
     raven = EXCEL_RAVEN()
-    print(raven.filter_3())
+    raven.excel_maker()
     # while True:
     #     print("想查詢 1: 型態過濾, 2: 籌碼過濾")
     #     system = input()
