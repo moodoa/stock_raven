@@ -198,7 +198,7 @@ class EXCEL_RAVEN:
                 ratio = soup.select("div.Fz\(24px\)")[1]
                 if float(volume.string.replace(",", "")) > 0:
                     if float(ratio.string.replace("%", "")) >= 30:
-                        filter2_qualified.append((code, name, ratio))
+                        filter2_qualified.append((code, name, float(ratio.string.replace("%", ""))))
             except:
                 pass
         return filter2_qualified
