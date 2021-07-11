@@ -4,7 +4,7 @@ stock_raven 是一個在 CMD 操作的股票篩選程式，透過此程式可以
 2. 主力買超 > 主力賣超 and 主力成交量 > 30%。
 3. 在 top 50 主力買超名單內，並連續買超兩天。
 
-![alt text](https://api.time.com/wp-content/uploads/2017/06/raven.jpg)
+![alt text](https://i.pinimg.com/474x/c2/ea/74/c2ea74d12d54e4a783f3ef4151d70418.jpg)
 
 ## STOCK_RAVEN
 * _collect_stock : 蒐集近 20 開盤日股市資訊。 
