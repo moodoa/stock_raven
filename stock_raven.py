@@ -1,6 +1,8 @@
 import time
+import json
 import requests
 import pandas as pd
+from tqdm import tqdm
 from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
 
@@ -48,6 +50,9 @@ class STOCK_RAVEN:
                             )
                         except:
                             del stocks[stock[0]]
+        today = datetime.now().strftime("%Y%m%d")
+        with open(f"{today}_20days_data.json", "w") as file:
+            json.dump(stocks, file)
         return stocks
 
     def qualified_stock(self, twenty_day_info):
@@ -189,7 +194,7 @@ class EXCEL_RAVEN:
         headers = {"user-agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Mobile Safari/537.36"}
         filter2_qualified = []
         qualified_stocks = f1_qualified
-        for code, name in qualified_stocks:
+        for code, name in tqdm(qualified_stocks):
             time.sleep(2)
             text = requests.get(f'https://tw.stock.yahoo.com/d/s/major_{code}.html', headers=headers).text
             soup = BeautifulSoup(text, "lxml")
@@ -246,7 +251,14 @@ class EXCEL_RAVEN:
         return "done"
 
 if __name__ == "__main__":
+    today = datetime.now().strftime("%Y%m%d")
     twenty_day_info = {}
+    try:
+        with open(f"{today}_20days_data.json") as json_file:
+            twenty_day_info = json.load(json_file)
+    except:
+        pass
+
     while True:
         print("想查詢 1: 型態過濾, 2: 籌碼過濾, 3: excel 製作")
         system = input()
