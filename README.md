@@ -2,7 +2,8 @@
 stock_raven 是一個在 CMD 操作的股票篩選程式，透過此程式可以篩選出:
 1. 符合型態過濾 ( 5 日均價 < 10 日均價 and 日收盤價 > 20 日均價 and 日收盤價 > 5 日均價 and 5 日均量 > 1000 and 日成交量 > 1 日前的日成交量)。
 2. 主力買超 > 主力賣超 and 主力成交量 > 30%。
-3. 在 top 50 主力買超名單內，並連續買超兩天。
+3. 該股籌碼集中度 >= 60%。
+4. 在 top 50 主力買超名單內，並連續買超兩天。
 
 ![alt text](https://i.pinimg.com/474x/c2/ea/74/c2ea74d12d54e4a783f3ef4151d70418.jpg)
 
@@ -17,7 +18,7 @@ stock_raven 是一個在 CMD 操作的股票篩選程式，透過此程式可以
 
 ## EXCEL_RAVEN
 * _get_top50_stock : 蒐集 TOP50 買超股票。
-* excel_maker : 製作含有三種篩選的 excel 檔案。
+* excel_maker : 製作含有四種篩選的 excel 檔案。
 
 ## Requirements
 python 3
