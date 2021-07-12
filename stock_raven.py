@@ -193,8 +193,7 @@ class EXCEL_RAVEN:
     def filter_2(self, f1_qualified):
         headers = {"user-agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Mobile Safari/537.36"}
         filter2_qualified = []
-        qualified_stocks = f1_qualified
-        for code, name in tqdm(qualified_stocks):
+        for code, name in tqdm(f1_qualified):
             time.sleep(2)
             text = requests.get(f'https://tw.stock.yahoo.com/d/s/major_{code}.html', headers=headers).text
             soup = BeautifulSoup(text, "lxml")
@@ -207,14 +206,21 @@ class EXCEL_RAVEN:
             except:
                 pass
         return filter2_qualified
-
+    
     def filter_3(self, f2_qualified):
-        filter2_qualified = f2_qualified
-        top_50_stock = self._get_top50_stock()
         filter3_qualified = []
-        for code, name, ratio in filter2_qualified:
+        for code, name, ratio in f2_qualified:
+            scr = self._get_scr(code)
+            if scr >= 60:
+                filter3_qualified.append((code, name, ratio, scr))
+        return filter3_qualified
+
+    def filter_4(self, f3_qualified):
+        top_50_stock = self._get_top50_stock()
+        filter4_qualified = []
+        for code, name, ratio, scr in f3_qualified:
             if f"{code}{name}" in top_50_stock:
-                filter3_qualified.append((code, 
+                filter4_qualified.append((code, 
                 name, 
                 ratio, 
                 top_50_stock[f"{code}{name}"]["price"], 
@@ -222,7 +228,7 @@ class EXCEL_RAVEN:
                 top_50_stock[f"{code}{name}"]["sell"],
                 top_50_stock[f"{code}{name}"]["gap"],
                 ))
-        return filter3_qualified
+        return filter4_qualified
 
     def _get_top50_stock(self):
         text = requests.get("https://fubon-ebrokerdj.fbs.com.tw/z/zg/zg_F_0_2.djhtm").text
@@ -238,16 +244,28 @@ class EXCEL_RAVEN:
                     stock_info[column[idx]] = info[idx].text.strip()
                 stocks_info[tr.select_one("td.t3t1").text.strip().replace(" ", "")] = stock_info
         return stocks_info
+    
+    def _get_scr(self, code):
+        try:
+            text = requests.get(f"https://histock.tw/stock/large.aspx?no={code}").text
+            time.sleep(2)
+            soup = BeautifulSoup(text, "lxml")
+            scr = pd.read_html(str(soup.select_one("table.tb-stock")))[0]["籌碼集中度"][0]
+            return float(scr.replace("%", ""))
+        except:
+            return 0
 
     def excel_maker(self, twenty_day_info):
         df = pd.DataFrame() 
         f1_qualified = self.filter_1(twenty_day_info)
         f2_qualified = self.filter_2(f1_qualified)
         f3_qualified = self.filter_3(f2_qualified)
-        df["filter_1"] = pd.Series(f1_qualified)
-        df["filter_2"] = pd.Series(f2_qualified)
-        df["filter_3"] = pd.Series(f3_qualified)
-        df.to_csv(f'{datetime.now().strftime("%Y%m%d")}stock_result.csv')
+        f4_qualified = self.filter_4(f3_qualified)
+        df["型態過濾"] = pd.Series(f1_qualified)
+        df["主力買超&主力成交量>=30%"] = pd.Series(f2_qualified)
+        df["籌碼集中度>=60%"] = pd.Series(f3_qualified)
+        df["TOP50買超&連續買超兩天"] = pd.Series(f3_qualified)
+        df.to_csv(f'{datetime.now().strftime("%Y%m%d")}stock_result.csv', encoding="utf_8_sig")
         return "done"
 
 if __name__ == "__main__":
