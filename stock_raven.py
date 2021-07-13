@@ -194,17 +194,20 @@ class EXCEL_RAVEN:
         headers = {"user-agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Mobile Safari/537.36"}
         filter2_qualified = []
         for code, name in tqdm(f1_qualified):
-            time.sleep(2)
-            text = requests.get(f'https://tw.stock.yahoo.com/d/s/major_{code}.html', headers=headers).text
-            soup = BeautifulSoup(text, "lxml")
-            try:
-                volume = soup.select("div.Fz\(24px\)")[0]
-                ratio = soup.select("div.Fz\(24px\)")[1]
-                if float(volume.string.replace(",", "")) > 0:
-                    if float(ratio.string.replace("%", "")) >= 30:
-                        filter2_qualified.append((code, name, float(ratio.string.replace("%", ""))))
-            except:
+            if len(code) == 6 and code.isdigit():
                 pass
+            else:
+                time.sleep(1)
+                text = requests.get(f'https://tw.stock.yahoo.com/d/s/major_{code}.html', headers=headers).text
+                soup = BeautifulSoup(text, "lxml")
+                try:
+                    volume = soup.select("div.Fz\(24px\)")[0]
+                    ratio = soup.select("div.Fz\(24px\)")[1]
+                    if float(volume.string.replace(",", "")) > 0:
+                        if float(ratio.string.replace("%", "")) >= 30:
+                            filter2_qualified.append((code, name, float(ratio.string.replace("%", ""))))
+                except:
+                    pass
         return filter2_qualified
     
     def filter_3(self, f2_qualified):
