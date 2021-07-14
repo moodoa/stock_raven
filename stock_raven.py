@@ -187,13 +187,13 @@ class EXCEL_RAVEN:
                     and v["price"][0] > (sum(v["price"][:5]) / 5)
                     and v["volume"][0] > v["volume"][1]
                 ):
-                    qualified.append((k, v["name"]))
+                    qualified.append((k, v["name"], f'今日收盤價 : {v["price"][0]} 元'))
         return qualified
     
     def filter_2(self, f1_qualified):
         headers = {"user-agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Mobile Safari/537.36"}
         filter2_qualified = []
-        for code, name in tqdm(f1_qualified):
+        for code, name, price in tqdm(f1_qualified):
             if len(code) == 6 and code.isdigit():
                 pass
             else:
@@ -205,31 +205,30 @@ class EXCEL_RAVEN:
                     ratio = soup.select("div.Fz\(24px\)")[1]
                     if float(volume.string.replace(",", "")) > 0:
                         if float(ratio.string.replace("%", "")) >= 30:
-                            filter2_qualified.append((code, name, float(ratio.string.replace("%", ""))))
+                            filter2_qualified.append((code, name, price, f'主力佔比 : {float(ratio.string.replace("%", ""))}%'))
                 except:
                     pass
         return filter2_qualified
     
     def filter_3(self, f2_qualified):
         filter3_qualified = []
-        for code, name, ratio in f2_qualified:
+        for code, name, price, ratio in f2_qualified:
             scr = self._get_scr(code)
             if scr >= 60:
-                filter3_qualified.append((code, name, ratio, scr))
+                filter3_qualified.append((code, name, price, ratio, f"籌碼集中度 : {scr} %"))
         return filter3_qualified
 
     def filter_4(self, f3_qualified):
         top_50_stock = self._get_top50_stock()
         filter4_qualified = []
-        for code, name, ratio, scr in f3_qualified:
+        for code, name, price, ratio, scr in f3_qualified:
             if f"{code}{name}" in top_50_stock:
                 filter4_qualified.append((code, 
                 name, 
-                ratio, 
-                top_50_stock[f"{code}{name}"]["price"], 
-                top_50_stock[f"{code}{name}"]["buy"],
-                top_50_stock[f"{code}{name}"]["sell"],
-                top_50_stock[f"{code}{name}"]["gap"],
+                price,
+                ratio,
+                scr, 
+                f'買賣超張數 : {top_50_stock[f"{code}{name}"]["gap"]}',
                 ))
         return filter4_qualified
 
@@ -267,7 +266,7 @@ class EXCEL_RAVEN:
         df["型態過濾"] = pd.Series(f1_qualified)
         df["主力買超&主力成交量>=30%"] = pd.Series(f2_qualified)
         df["籌碼集中度>=60%"] = pd.Series(f3_qualified)
-        df["TOP50買超&連續買超兩天"] = pd.Series(f3_qualified)
+        df["TOP50買超&連續買超兩天"] = pd.Series(f4_qualified)
         df.to_csv(f'{datetime.now().strftime("%Y%m%d")}stock_result.csv', encoding="utf_8_sig")
         return "done"
 
