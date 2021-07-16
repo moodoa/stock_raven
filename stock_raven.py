@@ -6,6 +6,7 @@ from tqdm import tqdm
 from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
 
+
 class STOCK_RAVEN:
     def _collect_stock(self):
         print("開始收集近 20 日股市資訊")
@@ -174,6 +175,7 @@ class INS_RAVEN:
                 print(f"{stock_info[0]} {stock_info[1].strip()} : {stock_info[-1]}")
         return "DONE"
 
+
 class EXCEL_RAVEN:
     def filter_1(self, twenty_day_info):
         stocks = twenty_day_info
@@ -189,64 +191,123 @@ class EXCEL_RAVEN:
                 ):
                     qualified.append((k, v["name"], f'今日收盤價 : {v["price"][0]} 元'))
         return qualified
-    
+
     def filter_2(self, f1_qualified):
-        headers = {"user-agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Mobile Safari/537.36"}
+        headers = {
+            "user-agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Mobile Safari/537.36"
+        }
         filter2_qualified = []
         for code, name, price in tqdm(f1_qualified):
             if len(code) == 6 and code.isdigit():
                 pass
             else:
                 time.sleep(1)
-                text = requests.get(f'https://tw.stock.yahoo.com/d/s/major_{code}.html', headers=headers).text
+                text = requests.get(
+                    f"https://tw.stock.yahoo.com/d/s/major_{code}.html", headers=headers
+                ).text
                 soup = BeautifulSoup(text, "lxml")
                 try:
                     volume = soup.select("div.Fz\(24px\)")[0]
                     ratio = soup.select("div.Fz\(24px\)")[1]
                     if float(volume.string.replace(",", "")) > 0:
                         if float(ratio.string.replace("%", "")) >= 30:
-                            filter2_qualified.append((code, name, price, f'主力佔比 : {float(ratio.string.replace("%", ""))}%'))
+                            filter2_qualified.append(
+                                (
+                                    code,
+                                    name,
+                                    price,
+                                    f'主力佔比 : {float(ratio.string.replace("%", ""))}%',
+                                )
+                            )
                 except:
                     pass
         return filter2_qualified
-    
-    def filter_3(self, f2_qualified):
+
+    def filter_3(self, f1_qualified):
         filter3_qualified = []
-        for code, name, price, ratio in f2_qualified:
-            scr = self._get_scr(code)
-            if scr >= 60:
-                filter3_qualified.append((code, name, price, ratio, f"籌碼集中度 : {scr} %"))
+        for code, name, price in tqdm(f1_qualified):
+            if len(code) == 6 and code.isdigit():
+                pass
+            else:
+                scr = self._get_scr(code)
+                if scr >= 60:
+                    filter3_qualified.append((code, name, price, f"籌碼集中度 : {scr} %"))
         return filter3_qualified
 
-    def filter_4(self, f3_qualified):
-        top_50_stock = self._get_top50_stock()
+    def filter_4(self, f1_qualified):
+        top_50_stock = self._get_main_top50_stock()
         filter4_qualified = []
-        for code, name, price, ratio, scr in f3_qualified:
+        for code, name, price in f1_qualified:
             if f"{code}{name}" in top_50_stock:
-                filter4_qualified.append((code, 
-                name, 
-                price,
-                ratio,
-                scr, 
-                f'買賣超張數 : {top_50_stock[f"{code}{name}"]["gap"]}',
-                ))
+                filter4_qualified.append(
+                    (
+                        code,
+                        name,
+                        price,
+                        f'買賣超張數 : {top_50_stock[f"{code}{name}"]["gap"]}',
+                    )
+                )
         return filter4_qualified
 
-    def _get_top50_stock(self):
-        text = requests.get("https://fubon-ebrokerdj.fbs.com.tw/z/zg/zg_F_0_2.djhtm").text
+    def filter_5(self, f1_qualified):
+        top_50_stock = self._get_foreign_top50_stock()
+        filter5_qualified = []
+        for code, name, price in f1_qualified:
+            if f"{code}{name}" in top_50_stock:
+                filter5_qualified.append(
+                    (
+                        code,
+                        name,
+                        price,
+                        f'買賣超張數 : {top_50_stock[f"{code}{name}"]["gap"]}',
+                    )
+                )
+        return filter5_qualified
+
+    def _get_main_top50_stock(self):
+        text = requests.get(
+            "https://fubon-ebrokerdj.fbs.com.tw/z/zg/zg_F_0_2.djhtm"
+        ).text
         soup = BeautifulSoup(text, "lxml")
         all_tr = soup.select("tr")[5:]
         stocks_info = {}
         column = ["price", "buy", "sell", "gap"]
         for tr in all_tr:
-            if len(tr)>1:
+            if len(tr) > 1:
                 stock_info = {}
                 info = tr.select("td.t3n1")
                 for idx in range(len(column)):
-                    stock_info[column[idx]] = info[idx].text.strip()
-                stocks_info[tr.select_one("td.t3t1").text.strip().replace(" ", "")] = stock_info
+                    try:
+                        stock_info[column[idx]] = info[idx].text.strip()
+                    except:
+                        pass
+                stocks_info[
+                    tr.select_one("td.t3t1").text.strip().replace(" ", "")
+                ] = stock_info
         return stocks_info
-    
+
+    def _get_foreign_top50_stock(self):
+        text = requests.get(
+            "https://fubon-ebrokerdj.fbs.com.tw/z/zg/zg_D_0_2.djhtm"
+        ).text
+        soup = BeautifulSoup(text, "lxml")
+        all_tr = soup.select("tr")[5:]
+        stocks_info = {}
+        column = ["price", "gap"]
+        for tr in all_tr:
+            if len(tr) > 1:
+                stock_info = {}
+                info = tr.select("td.t3n1")
+                for idx in range(len(column)):
+                    try:
+                        stock_info[column[idx]] = info[idx].text.strip()
+                    except:
+                        pass
+                stocks_info[
+                    tr.select_one("td.t3t1").text.strip().replace(" ", "")
+                ] = stock_info
+        return stocks_info
+
     def _get_scr(self, code):
         try:
             text = requests.get(f"https://histock.tw/stock/large.aspx?no={code}").text
@@ -258,17 +319,22 @@ class EXCEL_RAVEN:
             return 0
 
     def excel_maker(self, twenty_day_info):
-        df = pd.DataFrame() 
+        df = pd.DataFrame()
         f1_qualified = self.filter_1(twenty_day_info)
         f2_qualified = self.filter_2(f1_qualified)
-        f3_qualified = self.filter_3(f2_qualified)
-        f4_qualified = self.filter_4(f3_qualified)
+        f3_qualified = self.filter_3(f1_qualified)
+        f4_qualified = self.filter_4(f1_qualified)
+        f5_qualified = self.filter_5(f1_qualified)
         df["型態過濾"] = pd.Series(f1_qualified)
         df["主力買超&主力成交量>=30%"] = pd.Series(f2_qualified)
         df["籌碼集中度>=60%"] = pd.Series(f3_qualified)
-        df["TOP50買超&連續買超兩天"] = pd.Series(f4_qualified)
-        df.to_csv(f'{datetime.now().strftime("%Y%m%d")}stock_result.csv', encoding="utf_8_sig")
+        df["TOP50主力買超&連續買超兩天"] = pd.Series(f4_qualified)
+        df["TOP50外資買超&連續買超兩天"] = pd.Series(f5_qualified)
+        df.to_csv(
+            f'{datetime.now().strftime("%Y%m%d")}stock_result.csv', encoding="utf_8_sig"
+        )
         return "done"
+
 
 if __name__ == "__main__":
     today = datetime.now().strftime("%Y%m%d")
