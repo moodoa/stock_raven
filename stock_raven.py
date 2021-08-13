@@ -64,7 +64,7 @@ class STOCK_RAVEN:
                 if (
                     (sum(v["price"][:5]) / 5) < (sum(v["price"][:10]) / 10)
                     and v["price"][0] > (sum(v["price"][:20]) / 20)
-                    and (sum(v["volume"][:5]) / 5) > 1000
+                    and (sum(v["volume"][:5]) / 5) > 1000000
                     and v["price"][0] > (sum(v["price"][:5]) / 5)
                     and v["volume"][0] > v["volume"][1]
                 ):
@@ -185,7 +185,7 @@ class EXCEL_RAVEN:
                 if (
                     (sum(v["price"][:5]) / 5) < (sum(v["price"][:10]) / 10)
                     and v["price"][0] > (sum(v["price"][:20]) / 20)
-                    and (sum(v["volume"][:5]) / 5) > 1000
+                    and (sum(v["volume"][:5]) / 5) > 1000000
                     and v["price"][0] > (sum(v["price"][:5]) / 5)
                     and v["volume"][0] > v["volume"][1]
                 ):
